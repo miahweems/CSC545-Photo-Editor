@@ -1,6 +1,7 @@
 /*
 Image Cropper
 Select an area using mouse then press c to crop.
+After cropping, cropped image will be centered in the screen
 */
 PImage img, croppedImg;
 String fname = "hot_air2.jpg";
