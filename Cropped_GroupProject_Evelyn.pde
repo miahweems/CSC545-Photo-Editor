@@ -1,3 +1,7 @@
+/*
+Image Cropper
+Select an area using mouse then press c to crop.
+*/
 PImage img, croppedImg;
 String fname = "hot_air2.jpg";
 int startX, startY, endX, endY;
