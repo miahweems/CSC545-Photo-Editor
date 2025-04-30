@@ -3,115 +3,199 @@ CSC 545 Photo Editor
 Miah Weems, Evelyn Routon, Faith Cordsiemon, Elena Brown
 */
 
-//import statements
+// Import library
 import controlP5.*;
 
-//variables
+// Image variables
 PImage img, gray_img, sep_img, currentImg, rose_img, neg_img, baw_img;
+PImage originalImg;
 String filename = "", errorText = "";
 ControlP5 cp5;
 Boolean mainMenu = true, textReadError = false;
 PFont f;
 
+// Cropping variables
+boolean cropMode = false;
+boolean isDragging = false;
+int cropX1, cropY1, cropX2, cropY2;
+
 void setup() {
-  size(1000, 750);  
+  size(1000, 750);
   f = createFont("Bookman Old Style", 48, true);
   textFont(f);
   windowResizable(true);
-  
+
   cp5 = new ControlP5(this);
 
-  //input box for file selection
+  // File input
   cp5.addTextfield("filename")
-     .setPosition(40, 400)     //Position
-     .setSize(280, 40)      //Size
-     .setFont(createFont("Bookman Old Style", 20))  //Font  
+     .setPosition(40, 400)
+     .setSize(280, 40)
+     .setFont(createFont("Bookman Old Style", 20))
      .setAutoClear(false)
-     .setColor(color(144,238,144)) //Color
-     .setColorBackground(color(50)) //Background Color
-     .setColorForeground(color(100)); //On Focus Color
+     .setColor(color(144,238,144))
+     .setColorBackground(color(50))
+     .setColorForeground(color(100));
 }
 
 void draw() {
-  
-  if(mainMenu) {
-    //background color - dark green
+  if (mainMenu) {
     background(6, 64, 43);
     textSize(110);
-    //text color- light green
-    fill(144,238,144);
-
-    //title
+    fill(144, 238, 144);
     text("545 Photo Editor", 45, 100);
-    
-    //subtitle
-    textSize(50);
-    text("Please enter your file name with it's extension to open your picture in the editor!", 45, 200,  900, 900);
 
-    if(textReadError){
-     fill(255,0,0);
-     textSize(40);
-     text("Could not load image: " +filename, 45, 550);
-     textSize(30);
-     text("Please make sure you spelled the file name/extension correct and that the file is in the data folder, then try again.", 45, 600, 900, 900);
+    textSize(50);
+    text("Please enter your file name with its extension to open your picture!", 45, 200, 900, 900);
+
+    if (textReadError) {
+      fill(255, 0, 0);
+      textSize(40);
+      text("Could not load image: " + filename, 45, 550);
+      textSize(30);
+      text("Ensure spelling and file location are correct (should be in the data folder).", 45, 600, 900, 900);
     }
 
   } else {
-    //hide text box
     cp5.get(Textfield.class, "filename").hide();
     background(255);
-    //selectedImg = loadImage(filename);
-    image(currentImg, 0, 0);
-    windowResizable(true);
-    windowResize(currentImg.width, currentImg.height);
-    //currentImg = img;
-    gray_img = imageGrayScale(currentImg);
-    sep_img = imageSepia(currentImg);
-    rose_img = imageRoseTint(currentImg);
-    neg_img = imageNegative(currentImg);
-    baw_img = imageBlackWhite(currentImg);
-    windowResize(currentImg.width, currentImg.height);
-    
+
+    if (cropMode) {
+      image(currentImg, 0, 0);
+      stroke(255, 0, 0);
+      noFill();
+      rect(cropX1, cropY1, cropX2 - cropX1, cropY2 - cropY1);
+
+      fill(0, 0, 0, 150);
+      noStroke();
+      rect(10, 10, 400, 80);
+      fill(255);
+      textSize(20);
+      text("Crop Mode: Drag to select. Press 'k' to keep inside, 'o' to keep outside, 'c' to cancel.", 20, 40, 380, 80);
+    } else {
+      image(currentImg, 0, 0);
+      windowResize(currentImg.width, currentImg.height);
+
+      gray_img = imageGrayScale(currentImg);
+      sep_img = imageSepia(currentImg);
+      rose_img = imageRoseTint(currentImg);
+      neg_img = imageNegative(currentImg);
+      baw_img = imageBlackWhite(currentImg);
+    }
   }
 }
 
-// --- KEY HANDLERS ---
+// Handle key inputs
 void keyReleased() {
-  if (key == '1' && !mainMenu) currentImg = img;
-  else if (key == '2' && !mainMenu) currentImg = gray_img;
-  else if (key == '3' && !mainMenu) currentImg = baw_img;
-  else if (key == '4' && !mainMenu) currentImg = sep_img;
-  else if (key == '5' && !mainMenu) currentImg = rose_img;
-  else if (key == '6' && !mainMenu) currentImg = neg_img;
-  else if (key == 'r' && !mainMenu) rotateImage();
-  else if (key == 'h' && !mainMenu) flipHorizontal();
-  else if (key == 'v' && !mainMenu) flipVertical();
-  else if (key == 'b' && !mainMenu) adjustBrightness(10);
-  else if (key == 'n' && !mainMenu) adjustBrightness(-10);
-  else if (key == 'c' && !mainMenu) adjustContrast(1.1);
-  else if (key == 'x' && !mainMenu) adjustContrast(0.9);
-  else if (key == 's' && !mainMenu) adjustShadows(20);
-  else if (key == 'a' && !mainMenu) adjustShadows(-20);
+  if (mainMenu) return;
+
+  println("Key Released: " + key);
+
+  //FILTERS & RESET
+  if (key == '1') currentImg = img.copy();
+  else if (key == '2') currentImg = gray_img.copy();
+  else if (key == '3') currentImg = baw_img.copy();
+  else if (key == '4') currentImg = sep_img.copy();
+  else if (key == '5') currentImg = rose_img.copy();
+  else if (key == '6') currentImg = neg_img.copy();
+
+  //IMAGE TRANSFORMS
+  else if (key == 'r') rotateImage();
+  else if (key == 'h') flipHorizontal();
+  else if (key == 'v') flipVertical();
+
+  //BRIGHTNESS / CONTRAST / SHADOWS
+  else if (key == 'b') adjustBrightness(10);
+  else if (key == 'n') adjustBrightness(-10);
+  else if (key == 'c' && !cropMode) adjustContrast(1.1);
+  else if (key == 'x') adjustContrast(0.9);
+  else if (key == 's') adjustShadows(20);
+  else if (key == 'a') adjustShadows(-20);
 }
 
-// --- FILE NAME READER ---
-//Automatically called when the user inputs text in the text box and hits Enter
+void keyPressed() {
+  if (mainMenu) return;
+
+  println("Key Pressed: " + key);
+
+  if (key == 'm') {
+    println("Crop mode activated");
+    cropMode = true;
+  }
+  else if (key == 'k' && cropMode) {
+    applyCrop(true);
+  }
+  else if (key == 'o' && cropMode) {
+    applyCrop(false);
+  }
+  else if (key == 'c' && cropMode) {
+    println("Crop canceled");
+    cropMode = false;
+    currentImg = img.copy();
+  }
+}
+
+// Image loading callback
 void filename(String txt) {
   filename = txt;
   currentImg = loadImage(filename);
 
-   if (currentImg == null) {
+  if (currentImg == null) {
     textReadError = true;
-
   } else {
     textReadError = false;
     println("Image loaded: " + filename);
-    img = currentImg.copy();
     mainMenu = false;
+    img = currentImg.copy();
+    originalImg = currentImg.copy();
+    
+    cp5.get(Textfield.class, "filename").setFocus(false);
+
   }
 }
 
-// --- FILTERS ---
+// Mouse drag for crop
+void mousePressed() {
+  if (cropMode) {
+    cropX1 = mouseX;
+    cropY1 = mouseY;
+    isDragging = true;
+  }
+}
+
+void mouseReleased() {
+  if (cropMode) {
+    cropX2 = mouseX;
+    cropY2 = mouseY;
+    isDragging = false;
+  }
+}
+
+// Apply crop
+void applyCrop(boolean keepInside) {
+  cropMode = false;
+  int x1 = min(cropX1, cropX2);
+  int y1 = min(cropY1, cropY2);
+  int w = abs(cropX2 - cropX1);
+  int h = abs(cropY2 - cropY1);
+
+  if (w <= 0 || h <= 0) return;
+
+  if (keepInside) {
+    currentImg = currentImg.get(x1, y1, w, h);
+  } else {
+    PGraphics pg = createGraphics(currentImg.width, currentImg.height);
+    pg.beginDraw();
+    pg.image(currentImg, 0, 0);
+    pg.noStroke();
+    pg.fill(255);
+    pg.rect(x1, y1, w, h);
+    pg.endDraw();
+    currentImg = pg.get();
+  }
+}
+
+// --- Filters ---
 PImage imageGrayScale(PImage input_img) {
   PImage target = createImage(input_img.width, input_img.height, ARGB);
   for (int x = 0; x < input_img.width; x++) {
@@ -170,7 +254,7 @@ PImage imageRoseTint(PImage input_img) {
   return target;
 }
 
-// --- EDIT TOOLS ---
+// --- Edits ---
 void rotateImage() {
   PGraphics temp = createGraphics(currentImg.height, currentImg.width);
   temp.beginDraw();
