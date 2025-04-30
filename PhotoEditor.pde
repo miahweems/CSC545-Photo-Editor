@@ -106,6 +106,7 @@ void filename(String txt) {
   } else {
     textReadError = false;
     println("Image loaded: " + filename);
+    img = currentImg.copy();
     mainMenu = false;
   }
 }
