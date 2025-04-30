@@ -3,43 +3,111 @@ CSC 545 Photo Editor
 Miah Weems, Evelyn Routon, Faith Cordsiemon, Elena Brown
 */
 
+//import statements
+import controlP5.*;
+
+//variables
 PImage img, gray_img, sep_img, currentImg, rose_img, neg_img, baw_img;
-String fname = "queenstown.jpg";
+String filename = "", errorText = "";
+ControlP5 cp5;
+Boolean mainMenu = true, textReadError = false;
+PFont f;
 
 void setup() {
-  size(800, 800);
+  size(1000, 750);  
+  f = createFont("Bookman Old Style", 48, true);
+  textFont(f);
   windowResizable(true);
-  img = loadImage(fname);
-  currentImg = img;
-  gray_img = imageGrayScale(img);
-  sep_img = imageSepia(img);
-  rose_img = imageRoseTint(img);
-  neg_img = imageNegative(img);
-  baw_img = imageBlackWhite(img);
-  windowResize(img.width, img.height);
+  
+  cp5 = new ControlP5(this);
+
+  //input box for file selection
+  cp5.addTextfield("filename")
+     .setPosition(40, 400)     //Position
+     .setSize(280, 40)      //Size
+     .setFont(createFont("Bookman Old Style", 20))  //Font  
+     .setAutoClear(false)
+     .setColor(color(144,238,144)) //Color
+     .setColorBackground(color(50)) //Background Color
+     .setColorForeground(color(100)); //On Focus Color
 }
 
 void draw() {
-  background(255);
-  image(currentImg, 0, 0);
+  
+  if(mainMenu) {
+    //background color - dark green
+    background(6, 64, 43);
+    textSize(110);
+    //text color- light green
+    fill(144,238,144);
+
+    //title
+    text("545 Photo Editor", 45, 100);
+    
+    //subtitle
+    textSize(50);
+    text("Please enter your file name with it's extension to open your picture in the editor!", 45, 200,  900, 900);
+
+    if(textReadError){
+     fill(255,0,0);
+     textSize(40);
+     text("Could not load image: " +filename, 45, 550);
+     textSize(30);
+     text("Please make sure you spelled the file name/extension correct and that the file is in the data folder, then try again.", 45, 600, 900, 900);
+    }
+
+  } else {
+    //hide text box
+    cp5.get(Textfield.class, "filename").hide();
+    background(255);
+    //selectedImg = loadImage(filename);
+    image(currentImg, 0, 0);
+    windowResizable(true);
+    windowResize(currentImg.width, currentImg.height);
+    //currentImg = img;
+    gray_img = imageGrayScale(currentImg);
+    sep_img = imageSepia(currentImg);
+    rose_img = imageRoseTint(currentImg);
+    neg_img = imageNegative(currentImg);
+    baw_img = imageBlackWhite(currentImg);
+    windowResize(currentImg.width, currentImg.height);
+    
+  }
 }
 
+// --- KEY HANDLERS ---
 void keyReleased() {
-  if (key == '1') currentImg = img;
-  else if (key == '2') currentImg = gray_img;
-  else if (key == '3') currentImg = baw_img;
-  else if (key == '4') currentImg = sep_img;
-  else if (key == '5') currentImg = rose_img;
-  else if (key == '6') currentImg = neg_img;
-  else if (key == 'r') rotateImage();
-  else if (key == 'h') flipHorizontal();
-  else if (key == 'v') flipVertical();
-  else if (key == 'b') adjustBrightness(10);
-  else if (key == 'n') adjustBrightness(-10);
-  else if (key == 'c') adjustContrast(1.1);
-  else if (key == 'x') adjustContrast(0.9);
-  else if (key == 's') adjustShadows(20);
-  else if (key == 'a') adjustShadows(-20);
+  if (key == '1' && !mainMenu) currentImg = img;
+  else if (key == '2' && !mainMenu) currentImg = gray_img;
+  else if (key == '3' && !mainMenu) currentImg = baw_img;
+  else if (key == '4' && !mainMenu) currentImg = sep_img;
+  else if (key == '5' && !mainMenu) currentImg = rose_img;
+  else if (key == '6' && !mainMenu) currentImg = neg_img;
+  else if (key == 'r' && !mainMenu) rotateImage();
+  else if (key == 'h' && !mainMenu) flipHorizontal();
+  else if (key == 'v' && !mainMenu) flipVertical();
+  else if (key == 'b' && !mainMenu) adjustBrightness(10);
+  else if (key == 'n' && !mainMenu) adjustBrightness(-10);
+  else if (key == 'c' && !mainMenu) adjustContrast(1.1);
+  else if (key == 'x' && !mainMenu) adjustContrast(0.9);
+  else if (key == 's' && !mainMenu) adjustShadows(20);
+  else if (key == 'a' && !mainMenu) adjustShadows(-20);
+}
+
+// --- FILE NAME READER ---
+//Automatically called when the user inputs text in the text box and hits Enter
+void filename(String txt) {
+  filename = txt;
+  currentImg = loadImage(filename);
+
+   if (currentImg == null) {
+    textReadError = true;
+
+  } else {
+    textReadError = false;
+    println("Image loaded: " + filename);
+    mainMenu = false;
+  }
 }
 
 // --- FILTERS ---
