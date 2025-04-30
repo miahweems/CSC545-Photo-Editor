@@ -3,7 +3,6 @@ CSC 545 Photo Editor
 Miah Weems, Evelyn Routon, Faith Cordsiemon, Elena Brown
 */
 
-// Import library
 import controlP5.*;
 
 // Image variables
@@ -14,10 +13,13 @@ ControlP5 cp5;
 Boolean mainMenu = true, textReadError = false;
 PFont f;
 
-// Cropping variables
+// Cropping
 boolean cropMode = false;
 boolean isDragging = false;
 int cropX1, cropY1, cropX2, cropY2;
+
+// Help toggle
+boolean showHelp = false;
 
 void setup() {
   size(1000, 750);
@@ -36,6 +38,19 @@ void setup() {
      .setColor(color(144,238,144))
      .setColorBackground(color(50))
      .setColorForeground(color(100));
+
+  // Top toolbar buttons
+  cp5.addButton("Back")
+     .setPosition(10, 10)
+     .setSize(80, 30)
+     .setCaptionLabel("Back")
+     .hide();
+
+  cp5.addButton("Help")
+     .setPosition(width - 90, 10)
+     .setSize(80, 30)
+     .setCaptionLabel("Help")
+     .hide();
 }
 
 void draw() {
@@ -48,6 +63,9 @@ void draw() {
     textSize(50);
     text("Please enter your file name with its extension to open your picture!", 45, 200, 900, 900);
 
+    cp5.getController("Back").hide();
+    cp5.getController("Help").hide();
+
     if (textReadError) {
       fill(255, 0, 0);
       textSize(40);
@@ -58,84 +76,129 @@ void draw() {
 
   } else {
     cp5.get(Textfield.class, "filename").hide();
+    cp5.getController("Back").show();
+    cp5.getController("Help").show();
+
     background(255);
 
+    // Top bar
+    fill(30);
+    noStroke();
+    rect(0, 0, width, 50);
+    
+    // Dynamically position Help button so it doesn't go offscreen
+    cp5.getController("Help").setPosition(width - 90, 10);
+    cp5.getController("Back").setPosition(10, 10);
+
     if (cropMode) {
-      image(currentImg, 0, 0);
+      image(currentImg, 0, 50);
       stroke(255, 0, 0);
       noFill();
       rect(cropX1, cropY1, cropX2 - cropX1, cropY2 - cropY1);
 
       fill(0, 0, 0, 150);
       noStroke();
-      rect(10, 10, 400, 80);
+      rect(10, 60, 400, 80);
       fill(255);
       textSize(20);
-      text("Crop Mode: Drag to select. Press 'k' to keep inside, 'o' to keep outside, 'c' to cancel.", 20, 40, 380, 80);
+      text("Crop Mode: Drag to select. Press 'k' to keep inside, 'o' to keep outside, 'c' to cancel.", 20, 90, 380, 80);
     } else {
-      image(currentImg, 0, 0);
+      image(currentImg, 0, 50);
       windowResize(currentImg.width, currentImg.height);
-
       gray_img = imageGrayScale(currentImg);
       sep_img = imageSepia(currentImg);
       rose_img = imageRoseTint(currentImg);
       neg_img = imageNegative(currentImg);
       baw_img = imageBlackWhite(currentImg);
     }
+
+    // Help panel
+    if (showHelp) {
+      fill(0, 180);
+      rect(100, 80, width - 200, height - 150);
+      fill(255);
+      textSize(18);
+      textAlign(LEFT);
+      text(
+        "Hotkeys:\n" +
+        "'1'–'6': Apply filters\n" +
+        "'r': Rotate\n'h': Flip Horizontal\n'v': Flip Vertical\n" +
+        "'b'/'n': Brightness up/down\n" +
+        "'c'/'x': Contrast up/down\n" +
+        "'s'/'a': Shadow adjust\n" +
+        "'m': Enter Crop Mode\n" +
+        "'k': Keep Inside Crop\n" +
+        "'o': Remove Inside Crop\n" +
+        "'c' (in crop): Cancel Crop\n" +
+        "'p': Save\n" +
+        "'u': Undo",
+        120, 110, width - 240, height - 180
+      );
+    }
   }
 }
 
-// Handle key inputs
+// Key Events
 void keyReleased() {
   if (mainMenu) return;
 
-  println("Key Released: " + key);
-
-  //FILTERS & RESET
   if (key == '1') currentImg = img.copy();
   else if (key == '2') currentImg = gray_img.copy();
   else if (key == '3') currentImg = baw_img.copy();
   else if (key == '4') currentImg = sep_img.copy();
   else if (key == '5') currentImg = rose_img.copy();
   else if (key == '6') currentImg = neg_img.copy();
-
-  //IMAGE TRANSFORMS
   else if (key == 'r') rotateImage();
   else if (key == 'h') flipHorizontal();
   else if (key == 'v') flipVertical();
-
-  //BRIGHTNESS / CONTRAST / SHADOWS
   else if (key == 'b') adjustBrightness(10);
   else if (key == 'n') adjustBrightness(-10);
   else if (key == 'c' && !cropMode) adjustContrast(1.1);
   else if (key == 'x') adjustContrast(0.9);
   else if (key == 's') adjustShadows(20);
   else if (key == 'a') adjustShadows(-20);
+  else if (key == 'p') currentImg.save("edited_" + filename);
+  else if (key == 'u') if (originalImg != null) currentImg = originalImg.copy();
 }
 
 void keyPressed() {
   if (mainMenu) return;
 
-  println("Key Pressed: " + key);
-
-  if (key == 'm') {
-    println("Crop mode activated");
-    cropMode = true;
-  }
-  else if (key == 'k' && cropMode) {
-    applyCrop(true);
-  }
-  else if (key == 'o' && cropMode) {
-    applyCrop(false);
-  }
+  if (key == 'm') cropMode = true;
+  else if (key == 'k' && cropMode) applyCrop(true);
+  else if (key == 'o' && cropMode) applyCrop(false);
   else if (key == 'c' && cropMode) {
-    println("Crop canceled");
     cropMode = false;
     currentImg = img.copy();
   }
 }
 
-// Image loading callback
+// UI Buttons
+void Back() {
+  println("Returning to main menu");
+
+  mainMenu = true;
+  cropMode = false;
+  showHelp = false;
+
+  // Restore window size to original
+  surface.setSize(1000, 750);
+
+  // Show textfield again
+  cp5.get(Textfield.class, "filename").show();
+  cp5.get(Textfield.class, "filename").setText("");
+
+  // Hide buttons
+  cp5.getController("Back").hide();
+  cp5.getController("Help").hide();
+}
+
+void Help() {
+  showHelp = !showHelp;
+  println("Help toggled: " + showHelp);
+}
+
+// File Loading
 void filename(String txt) {
   filename = txt;
   currentImg = loadImage(filename);
@@ -144,17 +207,14 @@ void filename(String txt) {
     textReadError = true;
   } else {
     textReadError = false;
-    println("Image loaded: " + filename);
     mainMenu = false;
     img = currentImg.copy();
     originalImg = currentImg.copy();
-    
     cp5.get(Textfield.class, "filename").setFocus(false);
-
   }
 }
 
-// Mouse drag for crop
+// Mouse Crop
 void mousePressed() {
   if (cropMode) {
     cropX1 = mouseX;
@@ -171,31 +231,30 @@ void mouseReleased() {
   }
 }
 
-// Apply crop
+// Apply Crop
 void applyCrop(boolean keepInside) {
   cropMode = false;
   int x1 = min(cropX1, cropX2);
   int y1 = min(cropY1, cropY2);
   int w = abs(cropX2 - cropX1);
   int h = abs(cropY2 - cropY1);
-
   if (w <= 0 || h <= 0) return;
 
   if (keepInside) {
-    currentImg = currentImg.get(x1, y1, w, h);
+    currentImg = currentImg.get(x1, y1 - 50, w, h);
   } else {
     PGraphics pg = createGraphics(currentImg.width, currentImg.height);
     pg.beginDraw();
     pg.image(currentImg, 0, 0);
     pg.noStroke();
     pg.fill(255);
-    pg.rect(x1, y1, w, h);
+    pg.rect(x1, y1 - 50, w, h);
     pg.endDraw();
     currentImg = pg.get();
   }
 }
 
-// --- Filters ---
+// Filters
 PImage imageGrayScale(PImage input_img) {
   PImage target = createImage(input_img.width, input_img.height, ARGB);
   for (int x = 0; x < input_img.width; x++) {
@@ -254,7 +313,7 @@ PImage imageRoseTint(PImage input_img) {
   return target;
 }
 
-// --- Edits ---
+// Edit Tools
 void rotateImage() {
   PGraphics temp = createGraphics(currentImg.height, currentImg.width);
   temp.beginDraw();
