@@ -21,6 +21,14 @@ int cropX1, cropY1, cropX2, cropY2;
 // Help toggle
 boolean showHelp = false;
 
+// Drawing tool state
+boolean drawingMode = false;
+boolean erasingMode = false;
+boolean colorPickingMode = false;
+color currentPenColor = color(0);
+int brushSize = 10;
+PGraphics drawingLayer;
+
 void setup() {
   size(1000, 750);
   f = createFont("Bookman Old Style", 48, true);
@@ -51,6 +59,18 @@ void setup() {
      .setSize(80, 30)
      .setCaptionLabel("Help")
      .hide();
+     
+  cp5.addButton("SaveDrawing")
+     .setPosition(100, 10)
+     .setSize(80, 30)
+     .setCaptionLabel("Save")
+     .hide();
+
+     
+  drawingLayer = createGraphics(1000, 750);
+  drawingLayer.beginDraw();
+  drawingLayer.clear();
+  drawingLayer.endDraw();
 }
 
 void draw() {
@@ -65,6 +85,7 @@ void draw() {
 
     cp5.getController("Back").hide();
     cp5.getController("Help").hide();
+    cp5.getController("SaveDrawing").hide();
 
     if (textReadError) {
       fill(255, 0, 0);
@@ -78,6 +99,7 @@ void draw() {
     cp5.get(Textfield.class, "filename").hide();
     cp5.getController("Back").show();
     cp5.getController("Help").show();
+    cp5.getController("SaveDrawing").show();
 
     background(255);
 
@@ -89,9 +111,12 @@ void draw() {
     // Dynamically position Help button so it doesn't go offscreen
     cp5.getController("Help").setPosition(width - 90, 10);
     cp5.getController("Back").setPosition(10, 10);
+    cp5.getController("SaveDrawing").setPosition(100, 10);
+    
 
     if (cropMode) {
       image(currentImg, 0, 50);
+      image(drawingLayer, 0, 50);
       stroke(255, 0, 0);
       noFill();
       rect(cropX1, cropY1, cropX2 - cropX1, cropY2 - cropY1);
@@ -104,20 +129,21 @@ void draw() {
       text("Crop Mode: Drag to select. Press 'k' to keep inside, 'o' to keep outside, 'c' to cancel.", 20, 90, 380, 80);
     } else {
       image(currentImg, 0, 50);
+      image(drawingLayer, 0, 50);
       windowResize(currentImg.width, currentImg.height);
-      gray_img = imageGrayScale(currentImg);
-      sep_img = imageSepia(currentImg);
-      rose_img = imageRoseTint(currentImg);
-      neg_img = imageNegative(currentImg);
-      baw_img = imageBlackWhite(currentImg);
+      if (gray_img == null) gray_img = imageGrayScale(currentImg);
+      if (sep_img == null) sep_img = imageSepia(currentImg);
+      if (rose_img == null) rose_img = imageRoseTint(currentImg);
+      if (neg_img == null) neg_img = imageNegative(currentImg);
+      if (baw_img == null) baw_img = imageBlackWhite(currentImg);
     }
 
     // Help panel
     if (showHelp) {
       fill(0, 180);
-      rect(100, 80, width - 200, height - 150);
+      rect(110, 90, width - 220, height - 160);
       fill(255);
-      textSize(18);
+      textSize(12);
       textAlign(LEFT);
       text(
         "Hotkeys:\n" +
@@ -131,7 +157,8 @@ void draw() {
         "'o': Remove Inside Crop\n" +
         "'c' (in crop): Cancel Crop\n" +
         "'p': Save\n" +
-        "'u': Undo",
+        "'u': Undo" +
+        "'d': Pen Tool\n'e': Eraser Tool\n'g': Color Picker\n'+/-': Brush Size\n'q': Exit Drawing\n'z/y': Undo/Redo Drawing",
         120, 110, width - 240, height - 180
       );
     }
@@ -159,6 +186,9 @@ void keyReleased() {
   else if (key == 'a') adjustShadows(-20);
   else if (key == 'p') currentImg.save("edited_" + filename);
   else if (key == 'u') if (originalImg != null) currentImg = originalImg.copy();
+  else if (key == '+') brushSize += 10;
+  else if (key == '-') brushSize -= 10;
+  else if (key == 'q') currentImg = img.copy();
 }
 
 void keyPressed() {
@@ -171,6 +201,9 @@ void keyPressed() {
     cropMode = false;
     currentImg = img.copy();
   }
+  else if (key == 'd') {drawingMode = true; erasingMode = false; colorPickingMode = false;}
+  else if (key == 'e') {drawingMode = false; erasingMode = true; colorPickingMode = false;}
+  else if (key == 'g') {drawingMode = false; erasingMode = false; colorPickingMode = true;}
 }
 
 // UI Buttons
@@ -211,11 +244,20 @@ void filename(String txt) {
     img = currentImg.copy();
     originalImg = currentImg.copy();
     cp5.get(Textfield.class, "filename").setFocus(false);
+    
+    drawingLayer = createGraphics(currentImg.width, currentImg.height);
+    drawingLayer.beginDraw();
+    drawingLayer.clear();
+    drawingLayer.endDraw();
   }
 }
 
 // Mouse Crop
 void mousePressed() {
+  if (colorPickingMode && mouseY > 50) {
+    currentPenColor = get(mouseX, mouseY);
+    colorPickingMode = false;
+  }
   if (cropMode) {
     cropX1 = mouseX;
     cropY1 = mouseY;
@@ -229,6 +271,35 @@ void mouseReleased() {
     cropY2 = mouseY;
     isDragging = false;
   }
+}
+
+void mouseDragged() {
+  if (drawingMode || erasingMode) {
+    println("DRAWING to layer at:", mouseX, mouseY);
+    drawingLayer.beginDraw();
+    drawingLayer.noStroke();
+    drawingLayer.translate(0, -50);  // <---- offset drawingLayer upwards
+    if (drawingMode) {
+      drawingLayer.fill(currentPenColor);
+      drawingLayer.ellipse(mouseX, mouseY, brushSize, brushSize);
+    } else if (erasingMode) {
+      drawingLayer.fill(255);
+      drawingLayer.ellipse(mouseX, mouseY, brushSize, brushSize);
+    }
+    drawingLayer.endDraw();
+  }
+}
+
+//Save
+void SaveDrawing() {
+  PGraphics output = createGraphics(currentImg.width, currentImg.height);
+  output.beginDraw();
+  output.image(currentImg, 0, 0);
+  output.image(drawingLayer, 0, 0);
+  output.endDraw();
+  String saveName = "edited_" + filename;
+  output.save(saveName);
+  println("Saved image as:", saveName);
 }
 
 // Apply Crop
