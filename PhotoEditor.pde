@@ -28,6 +28,7 @@ boolean colorPickingMode = false;
 color currentPenColor = color(0);
 int brushSize = 10;
 PGraphics drawingLayer;
+int helpScrollOffset = 0;
 
 void setup() {
   size(1000, 750);
@@ -145,7 +146,8 @@ void draw() {
       fill(255);
       textSize(12);
       textAlign(LEFT);
-      text(
+
+      String helpText =
         "Hotkeys:\n" +
         "'1'–'6': Apply filters\n" +
         "'r': Rotate\n'h': Flip Horizontal\n'v': Flip Vertical\n" +
@@ -157,10 +159,22 @@ void draw() {
         "'o': Remove Inside Crop\n" +
         "'c' (in crop): Cancel Crop\n" +
         "'p': Save\n" +
-        "'u': Undo" +
-        "'d': Pen Tool\n'e': Eraser Tool\n'g': Color Picker\n'+/-': Brush Size\n'q': Exit Drawing\n'z/y': Undo/Redo Drawing",
-        120, 110, width - 240, height - 180
-      );
+        "'u': Undo\n" +
+        "'d': Pen Tool\n'e': Eraser Tool\n" +
+        "'g': Color Picker\n'+/-': Brush Size\n'q': Exit Drawing\n" +
+        "'z/y': Undo/Redo Drawing";
+
+      // Clip the text within the help box
+      push();
+      translate(120, 110 + helpScrollOffset); // Add scroll offset
+      int clipX = 120;
+      int clipY = 110;
+      int clipW = width - 240;
+      int clipH = height - 180;
+      beginShape();
+      text(helpText, 0, 0, clipW, 1000); // 1000 = arbitrary tall area for full text
+      endShape();
+      pop();
     }
   }
 }
@@ -191,8 +205,23 @@ void keyReleased() {
   else if (key == 'q') currentImg = img.copy();
 }
 
+// Scroll for help menu
+void mouseWheel(MouseEvent event) {
+  if (showHelp) {
+    float e = event.getCount();
+    helpScrollOffset -= int(e * 20); // adjust scroll speed here
+    helpScrollOffset = constrain(helpScrollOffset, -(int)(height), 0); // clamp so you can’t scroll too far
+  }
+}
+
 void keyPressed() {
   if (mainMenu) return;
+
+  else if (keyCode == UP && showHelp) {
+  helpScrollOffset = constrain(helpScrollOffset + 20, -(int)(height), 0);
+} else if (keyCode == DOWN && showHelp) {
+  helpScrollOffset = constrain(helpScrollOffset - 20, -(int)(height), 0);
+}
 
   if (key == 'm') cropMode = true;
   else if (key == 'k' && cropMode) applyCrop(true);
