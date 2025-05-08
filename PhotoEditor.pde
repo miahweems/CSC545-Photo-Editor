@@ -200,8 +200,6 @@ void keyReleased() {
   else if (key == 'a') adjustShadows(-20);
   else if (key == 'p') currentImg.save("edited_" + filename);
   else if (key == 'u') if (originalImg != null) currentImg = originalImg.copy();
-  else if (key == '+') brushSize += 10;
-  else if (key == '-') brushSize -= 10;
   else if (key == 'q') currentImg = img.copy();
 }
 
@@ -210,7 +208,7 @@ void mouseWheel(MouseEvent event) {
   if (showHelp) {
     float e = event.getCount();
     helpScrollOffset -= int(e * 20); // adjust scroll speed here
-    helpScrollOffset = constrain(helpScrollOffset, -(int)(height), 0); // clamp so you can’t scroll too far
+    helpScrollOffset = constrain(helpScrollOffset, -height, 0); // clamp so you can't scroll too far
   }
 }
 
@@ -233,6 +231,9 @@ void keyPressed() {
   else if (key == 'd') {drawingMode = true; erasingMode = false; colorPickingMode = false;}
   else if (key == 'e') {drawingMode = false; erasingMode = true; colorPickingMode = false;}
   else if (key == 'g') {drawingMode = false; erasingMode = false; colorPickingMode = true;}
+  else if (key == 'q') {drawingMode = false; erasingMode = false; colorPickingMode = false;}
+  else if (key == '=' || key == '+') brushSize = brushSize + 5;
+  else if (key == '-') brushSize = brushSize - 5;
 }
 
 // UI Buttons
